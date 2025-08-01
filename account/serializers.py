@@ -21,14 +21,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('cpassword')
         user = User.objects.create_user(**validated_data)
-        return user
-    
-# class UserLoginSerializer(serializers.ModelSerializer):
-#     email = serializers.EmailField(max_length=255)
-#     class Meta:
-#         model = User
-#         fields = ['email', 'password']
-       
+        return user       
 
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -47,3 +40,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'name', 'email', 'tc']
+        
+class UserPasswordChangeSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Old password is incorrect")
+        return value
+
+    def validate_new_password(self, value):
+        # Add any custom password validation here (length, complexity, etc.)
+        if len(value) < 4:
+            raise serializers.ValidationError("New password must be at least 4 characters long")
+        return value
