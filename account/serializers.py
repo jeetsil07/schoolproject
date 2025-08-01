@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from account.models import User
+from django.contrib.auth import authenticate
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     cpassword = serializers.CharField(write_only=True, style={'input_type': 'password'})
@@ -22,22 +23,27 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
     
-class UserLoginSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(max_length=255)
-    class Meta:
-        model = User
-        fields = ['email', 'password']
+# class UserLoginSerializer(serializers.ModelSerializer):
+#     email = serializers.EmailField(max_length=255)
+#     class Meta:
+#         model = User
+#         fields = ['email', 'password']
        
 
-    # def validate(self, data):
-    #     email = data.get('email')
-    #     password = data.get('password')
+class UserLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
 
-    #     if not email or not password:
-    #         raise serializers.ValidationError("Email and password are required")
-
-    #     user = User.objects.filter(email=email).first()
-    #     if user is None or not user.check_password(password):
-    #         raise serializers.ValidationError("Invalid credentials")
-
-    #     return user
+    def validate(self, data):
+        email = data.get('email')
+        password = data.get('password')
+        user = authenticate(email=email, password=password)
+        if user is None:
+            raise serializers.ValidationError({'msg': 'Invalid Credentials'})
+        data['user'] = user
+        return data
+    
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'email', 'tc']

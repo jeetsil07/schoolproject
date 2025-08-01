@@ -2,8 +2,19 @@ import re
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from account.serializers import UserLoginSerializer, UserRegistrationSerializer
+from account.serializers import UserLoginSerializer, UserProfileSerializer, UserRegistrationSerializer
 from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+
+
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
 
 class UserRegistrationView(APIView):
     def post(self, request):
@@ -11,19 +22,31 @@ class UserRegistrationView(APIView):
         print(serializer)
         if serializer.is_valid():
             user = serializer.save()
-            return Response({'msg': 'Registration Successful'}, status=status.HTTP_201_CREATED)
+            tokens = get_tokens_for_user(user)
+            return Response({
+                'msg': 'Registration Successful',
+                'tokens': tokens
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        
 class UserLoginView(APIView):
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.data.get('email')
-            password = serializer.data.get('password')
-            print(email, password)
-            user = authenticate(email=email, password=password)
-            if user is None:
-                return Response({'msg': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-            else:
-                return Response({'msg': 'Login Successful'}, status=status.HTTP_200_OK)
+            user = serializer.validated_data['user']
+            tokens = get_tokens_for_user(user)
+            return Response({
+                'msg': 'Login Successful',
+                'tokens': tokens
+            }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        print(request,"1")
+        print(request.user,"2")
+        serializer = UserProfileSerializer(request.user)
+        return Response({'profile': serializer.data}, status=status.HTTP_200_OK)
