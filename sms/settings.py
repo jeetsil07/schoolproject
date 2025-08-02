@@ -50,8 +50,8 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_RENDERER_CLASSES': (
-    'account.renderers.CustomJSONRenderer',
-)
+        'account.renderers.CustomJSONRenderer',
+    )
 }
 
 MIDDLEWARE = [

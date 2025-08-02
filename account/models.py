@@ -1,5 +1,5 @@
 from pyexpat import model
-from django.db import models
+from django.db import connections, models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 
 # Create your models here.
@@ -36,6 +36,12 @@ class UserManager(BaseUserManager):
         user.is_admin = True
         user.save(using=self._db)
         return user
+    
+    def fetch_basic_users(self):
+        with connections['default'].cursor() as cursor:
+            cursor.execute("SELECT id, name, email FROM account_user")
+            rows = cursor.fetchall()
+        return [{'id': row[0], 'name': row[1], 'email': row[2]} for row in rows]
 
 
 class User(AbstractBaseUser):
